@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>test panel</title>
+</head>
+<body>
+    <div style="display: flex; flex-flow: row nowrap; justify-content: space-around">
+        <div style="display: flex; flex-flow: column nowrap; width: 400px">
+            <h3>search for users</h3>
+            <input type="text" placeholder="id" id="id">
+            <input type="text" placeholder="name" id="name">
+            <input type="text" placeholder="role" id="role">
+            <button onclick="displayUserTable()">search</button>
+        </div>
+
+        <form style="display: flex;flex-flow: column nowrap; width: 400px"
+              action="/api/user" method="post" enctype="multipart/form-data"  id="userForm">
+            <h3>authorize new user</h3>
+            <input type="text" maxlength="15" placeholder="name" name="name" id="newName">
+            <input type="text" placeholder="password" name="password" id="newPassword">
+            <label>date of birth</label>
+            <input type="date" id="newBirthDate" name="dateOfBirth">
+            <div>
+                <label>USER</label>
+                <input type="radio" name="role" required value="USER">
+                <label>ADMIN</label>
+                <input type="radio" required name="role" value="ADMIN">
+            </div>
+            <input type="file" name="filedata" id="newFile"/><br><br>
+        <input type="submit" value="create" >
+        </form>
+
+        <div style="display: flex; flex-flow: column nowrap; width: 400px">
+            <h3>users control</h3>
+            <button onclick="deleteAllUsers()">delete all users</button>
+        </div>
+        <div id="upd">
+
+        </div>
+    </div>
+
+    <table id="table">
+
+    </table>
+    <script>
+
+        const requestURL = "http://localhost:3000/api/user";
+        displayUserTable()
+
+
+        const userForm = document.getElementById('userForm')
+
+        userForm.onsubmit = async (e) =>{
+            e.preventDefault();
+            const formData = new FormData(userForm);
+
+            await fetch(requestURL, {
+                method:"POST",
+                body: formData
+            })
+        }
+
+        const updForm = document.getElementById('userFormUpd');
+
+        updForm.onsubmit = async (e)=>{
+            e.preventDefault();
+
+            const formData = new FormData(updForm);
+
+            await fetch(requestURL, {
+                method:"PUT",
+                body: formData
+            })
+        }
+
+        function deleteUser(id){
+            fetch(requestURL+`/${id}`, {
+                mode:"cors",
+                method:"DELETE"
+            }).then((res)=>console.log(res)).then(()=>displayUserTable())
+        }
+
+        async function displayUpdPanel(id){
+            const updPanel = document.getElementById('upd');
+            if(updPanel.innerHTML) return updPanel.innerHTML = ''
+
+            const user = await fetch(requestURL + `?id=${id}`,{
+                method: "GET",
+                mode: 'cors'
+            }).then((res)=>{
+                // console.log(res.json())
+                return res.json();
+            })
+
+            let newDate = new Date(user[0].dateOfBirth)
+
+            updPanel.innerHTML = `<form style="display: flex;flex-flow: column nowrap; width: 400px"
+                                       action="/api/user" method="put" encType="multipart/form-data" id="userFormUpd">
+                <h3>update user info</h3>
+                <input type="text" name="id" disabled value="${user[0]._id}">
+                <input type="text" maxLength="15" placeholder="name" name="name" id="updName" value="${user[0].name}">
+                <input type="text" placeholder="password" name="password" id="updPassword" value="${user[0].password}">
+                <label>date of birth</label>
+                <input type="date" id="updBirthDate" name="dateOfBirth" value="${newDate.getFullYear()}-${newDate.getMonth()}-${newDate.getDate()}">
+                <div>
+                    <label>USER</label>
+                    <input type="radio" name="updRole" required value="USER">
+                    <label>ADMIN</label>
+                    <input type="radio" required name="updRole" value="ADMIN">
+                </div>
+                <input type="file" name="filedata" id="updFile" value="${user[0].avatarImg}"/><br><br>
+                <input type="submit" value="update">
+            </form>`
+            document.getElementsByName('updRole')[0].value = document.getElementsByName('role')[0].value;
+        }
+
+        function deleteAllUsers(){
+            fetch(requestURL, {
+                mode:"cors",
+                method:"DELETE"
+            }).then(()=>displayUserTable())
+        }
+
+
+        function displayUserTable(){
+            const id = document.getElementById('id').value;
+            const name = document.getElementById('name').value;
+            const role = document.getElementById('role').value;
+            let newURL = requestURL;
+
+            if(id || name || role){
+                newURL += `?id=${id?id:''}&name=${name?name:''}&role=${role?role:''}`
+            }
+
+            fetch(newURL,{
+                mode: "cors",
+                method : "GET",
+            }).then((res)=>{
+                return res.json();
+            }).then((data)=>{
+                let userCells = '';
+                let userCellsHead = '';
+                for(let key in data[0]){
+                    userCellsHead += `<th>${key}</th>`
+                }
+                for(let user of data){
+                    userCells+=`<tr>`
+                    for(let key in data[0]){
+                        userCells += key !=='avatarImg'?
+                            `<td style="border: #838383 0.5px solid">${user[key]}</td>`
+                            : `<td><img style="width: 100px" src="http://localhost:3000/admin/imgs/avatars/${user[key]}"/></td>`
+                    }
+                    userCells += `<td><button onclick="deleteUser('${user._id}')">del</button></td>
+                                  <td><button onclick="displayUpdPanel('${user._id}')">upd</button></td></tr>`
+                }
+                document.getElementById('table').innerHTML = `<thead>${userCellsHead}</thead> <tbody>${userCells}</tbody>`
+            })
+
+        }
+    </script>
+</body>
+</html>

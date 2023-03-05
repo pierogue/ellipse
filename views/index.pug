@@ -1,0 +1,15 @@
+html
+    head
+        title= title
+    body
+        h1= header
+        table
+            thead
+                tr
+                    each val, index in arr? arr[0]: []
+                        th= index
+            tbody
+                each val, index in arr
+                    tr
+                        each val in arr[index]
+                            td(style={border:'1px solid black'})= val
