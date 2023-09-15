@@ -1,2 +1,2 @@
 # ellipse
-server app for ellipse store
+node.js + mongodb web application
